@@ -1,0 +1,341 @@
+# BusGo — QR Ticket Authentication and Wallet System for Public Bus Transport
+
+A production-ready smart bus ticket booking platform with QR-based ticket authentication, digital wallet, real-time GPS tracking, seat selection, and AI-based recommendations.
+
+---
+
+## System Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                     FRONTEND (React)                      │
+│  Vite + React 18 + Tailwind CSS + React Router            │
+│                                                            │
+│  Pages: Home, Login, Register, Dashboard, Search,          │
+│         SeatSelection, Bookings, BookingDetail,            │
+│         Wallet, Tracking (GPS), Admin Panel                │
+│                                                            │
+│  Services: API layer (Axios + JWT interceptors)            │
+│  Context: AuthContext (user state, login/logout)           │
+└──────────────┬───────────────────────────────────┘
+               │ REST API (JSON) + JWT Auth
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│                   BACKEND (Django)                         │
+│  Django 4.2 + Django REST Framework + SimpleJWT            │
+│                                                            │
+│  Apps:                                                     │
+│  ├── accounts   → User auth, JWT, roles (admin/user)       │
+│  ├── buses      → Routes, buses, schedules, seat layout    │
+│  ├── bookings   → Ticket creation, cancellation            │
+│  ├── wallet     → Balance, add money, deduct fare          │
+│  ├── qrcode     → QR generation (Python qrcode lib)        │
+│  ├── gps        → Bus locations, simulation                │
+│  └── ai_module  → Pandas-based recommendation engine       │
+│                                                            │
+│  Architecture: Models → Serializers → Services → Views     │
+└──────────────┬───────────────────────────────────┘
+               │ Django ORM
+               ▼
+┌──────────────────────────────────────────────────────────┐
+│                     DATABASE (MySQL)                       │
+│                                                            │
+│  Tables: users, routes, buses, bus_schedules,              │
+│          bookings, wallets, transactions, bus_locations     │
+└──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Tech Stack
+
+| Layer     | Technology                                    |
+|-----------|-----------------------------------------------|
+| Frontend  | React 18, Vite, Tailwind CSS, React Router    |
+| Backend   | Python Django 4.2, Django REST Framework       |
+| Auth      | JWT (SimpleJWT)                                |
+| Database  | MySQL                                          |
+| AI Module | Python Pandas + Scikit-learn                   |
+| QR Code   | Python `qrcode` library + `qrcode.react`       |
+| GPS/Maps  | Google Maps Embed API                          |
+
+---
+
+## Folder Structure
+
+```
+busgpssystem/
+├── backend/
+│   ├── config/              # Django project settings
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── apps/
+│   │   ├── accounts/        # User model, auth views, JWT
+│   │   ├── buses/           # Routes, buses, schedules
+│   │   ├── bookings/        # Booking CRUD + service layer
+│   │   ├── wallet/          # Wallet + transactions
+│   │   ├── qrcode_module/   # QR generation + validation
+│   │   ├── gps/             # Bus location tracking
+│   │   └── ai_module/       # Recommendation engine
+│   ├── media/               # Uploaded QR code images
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── .env
+│   └── .env.example
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/      # Navbar, LoadingSpinner, ProtectedRoute
+│   │   ├── context/         # AuthContext
+│   │   ├── pages/           # All page components
+│   │   ├── services/        # API service layer (Axios)
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── postcss.config.js
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Setup Instructions
+
+### Prerequisites
+
+- **Python 3.10+**
+- **Node.js 18+**
+- **MySQL 8.0+**
+- **Git**
+
+### 1. Clone & enter the project
+
+```bash
+cd busgpssystem
+```
+
+### 2. MySQL Database Setup
+
+```sql
+CREATE DATABASE bus_gps_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 3. Backend Setup
+
+```bash
+cd backend
+
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Configure environment
+# Edit .env file — set your MySQL password and other settings
+
+# Run migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Seed sample data (creates admin, test user, routes, buses, schedules)
+python manage.py seed_data
+
+# Start backend server
+python manage.py runserver
+```
+
+**Backend runs at:** `http://127.0.0.1:8000`
+
+### 4. Frontend Setup
+
+```bash
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start dev server
+npm run dev
+```
+
+**Frontend runs at:** `http://localhost:5173`
+
+---
+
+## Default Test Accounts
+
+| Role      | Username    | Password   |
+|-----------|-------------|------------|
+| Admin     | admin       | admin123   |
+| User      | testuser    | user1234   |
+| Conductor | conductor1  | cond1234   |
+
+The test user starts with **₹1,000** wallet balance.
+
+---
+
+## API Endpoints
+
+### Authentication
+| Method | Endpoint                  | Description          | Auth |
+|--------|---------------------------|----------------------|------|
+| POST   | /api/auth/register/       | Register new user    | No   |
+| POST   | /api/auth/login/          | Get JWT tokens       | No   |
+| POST   | /api/auth/token/refresh/  | Refresh access token | No   |
+| GET    | /api/auth/profile/        | Get user profile     | Yes  |
+| PATCH  | /api/auth/profile/        | Update profile       | Yes  |
+| POST   | /api/auth/change-password/| Change password      | Yes  |
+| GET    | /api/auth/users/          | List all users       | Admin|
+
+### Buses & Routes
+| Method | Endpoint                              | Description           | Auth  |
+|--------|---------------------------------------|-----------------------|-------|
+| GET    | /api/buses/routes/                    | List routes           | No    |
+| POST   | /api/buses/routes/                    | Create route          | Admin |
+| GET    | /api/buses/                           | List buses            | No    |
+| POST   | /api/buses/                           | Create bus            | Admin |
+| GET    | /api/buses/search/?source=X&destination=Y&date=Z | Search buses | No |
+| GET    | /api/buses/schedules/                 | List schedules        | No    |
+| GET    | /api/buses/schedules/{id}/seats/      | Get seat layout       | No    |
+
+### Bookings
+| Method | Endpoint                          | Description       | Auth  |
+|--------|-----------------------------------|-------------------|-------|
+| POST   | /api/bookings/create/             | Book tickets      | Yes   |
+| GET    | /api/bookings/                    | My bookings       | Yes   |
+| GET    | /api/bookings/{booking_id}/       | Booking details   | Yes   |
+| POST   | /api/bookings/{booking_id}/cancel/| Cancel booking    | Yes   |
+| GET    | /api/bookings/all/                | All bookings      | Admin |
+
+### Wallet
+| Method | Endpoint                    | Description          | Auth |
+|--------|-----------------------------|----------------------|------|
+| GET    | /api/wallet/                | Wallet balance       | Yes  |
+| POST   | /api/wallet/add-money/      | Add money            | Yes  |
+| GET    | /api/wallet/transactions/   | Transaction history  | Yes  |
+
+### QR Code
+| Method | Endpoint            | Description       | Auth |
+|--------|---------------------|--------------------|------|
+| POST   | /api/qr/validate/   | Validate QR data   | Yes  |
+
+### GPS Tracking
+| Method | Endpoint                     | Description            | Auth  |
+|--------|------------------------------|------------------------|-------|
+| GET    | /api/gps/locations/          | All bus locations      | No    |
+| GET    | /api/gps/locations/{bus_id}/ | Single bus location    | No    |
+| POST   | /api/gps/update/             | Update location        | Admin |
+| POST   | /api/gps/simulate/{bus_id}/  | Simulate movement      | No    |
+
+### AI Recommendations
+| Method | Endpoint                   | Description             | Auth |
+|--------|----------------------------|-------------------------|------|
+| GET    | /api/ai/recommendations/   | User recommendations    | Yes  |
+| GET    | /api/ai/popular-routes/    | Popular routes globally  | No   |
+
+---
+
+## Sample API Requests (Postman)
+
+### Register
+```json
+POST /api/auth/register/
+{
+    "username": "john",
+    "email": "john@example.com",
+    "phone": "9876543210",
+    "password": "securePass123",
+    "password2": "securePass123"
+}
+```
+
+### Login
+```json
+POST /api/auth/login/
+{
+    "username": "testuser",
+    "password": "user1234"
+}
+// Response: { "access": "eyJ...", "refresh": "eyJ..." }
+```
+
+### Search Buses
+```
+GET /api/buses/search/?source=Bangalore&destination=Mysore&date=2026-03-26
+```
+
+### Book Ticket
+```json
+POST /api/bookings/create/
+Authorization: Bearer <access_token>
+{
+    "schedule_id": 1,
+    "seat_numbers": [5, 6]
+}
+```
+
+### Add Money to Wallet
+```json
+POST /api/wallet/add-money/
+Authorization: Bearer <access_token>
+{
+    "amount": 500.00
+}
+```
+
+### Validate QR Code
+```json
+POST /api/qr/validate/
+Authorization: Bearer <access_token>
+{
+    "qr_data": "{\"booking_id\": \"abc-uuid-here\"}"
+}
+```
+
+---
+
+## Database Schema (ER Overview)
+
+```
+Users (1) ──── (1) Wallet
+  │                  │
+  │                  └── (N) Transactions
+  │
+  └── (N) Bookings ──── (1) BusSchedule
+                              │
+                              └── (1) Bus ──── (1) Route
+                                    │
+                                    └── (1) BusLocation
+```
+
+---
+
+## Key Features Implemented
+
+1. **JWT Authentication** — Login, register, token refresh, role-based access
+2. **Bus Search & Booking** — Search by route/date, interactive seat selection, atomic booking
+3. **QR Code Tickets** — Auto-generated QR with booking details, downloadable, conductor validation API
+4. **Digital Wallet** — Add money, auto-deduction on booking, refund on cancellation, transaction history
+5. **GPS Tracking** — Real-time bus locations, Google Maps integration, simulation mode
+6. **AI Recommendations** — Frequent routes, preferred seats, booking patterns analysis using Pandas
+7. **Admin Panel** — View all bookings/buses/routes/users, QR validation tool
+8. **Responsive UI** — Mobile-first design with Tailwind CSS
+
+---
+
+## Security
+
+- Passwords hashed via Django's PBKDF2 (default)
+- JWT token-based auth with refresh rotation
+- Django ORM prevents SQL injection
+- Input validation via DRF serializers
+- CORS whitelist configured
+- Role-based access control on all endpoints
